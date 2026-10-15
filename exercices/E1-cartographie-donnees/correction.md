@@ -148,3 +148,15 @@ Tout le reste n'existe **que** dans `client_full`. C'est souvent plus identifian
 - l'agrégat comportemental (souris, clavier, scroll, touch).
 
 Conséquence pour la suite (E7) : purger `sessions` ne suffit pas si les filles ne partent pas avec. Le `ON DELETE CASCADE` de `db.ts` est là pour ça, et la duplication dans `client_full` est une piste de minimisation — ne pas recopier dans le blob ce qui est déjà en colonnes, et ne pas garder les IP locales WebRTC.
+
+## `colonne` dans `reputation`
+
+`colonne` est le paramètre de `reputation`. C'est le nom de la colonne de la table `sessions` dont on compte les valeurs différentes, pour un même `canvas_hash`.
+
+Le script l'appelle trois fois, avec trois colonnes :
+
+- `"ip"` : l'adresse en clair. Quatorze adresses différentes pour le même canvas.
+- `"ip_enc"` : la même adresse chiffrée. Chaque ligne a un chiffré différent, donc le compte ne suit plus les adresses.
+- `"ip_bidx"` : l'index HMAC. La même adresse redonne la même valeur, et on retrouve les quatorze.
+
+`canvas_hash` ne change pas d'un appel à l'autre. Seule la colonne comptée change.
