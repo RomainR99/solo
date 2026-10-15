@@ -50,8 +50,31 @@ def main():
     except ImportError:
         print("[2] installe scikit-learn pour la matrice de confusion")
 
-    # 3) TODO : balayer REVIEW de 0.2 à 0.8, tracer précision/rappel, choisir le seuil
-    #    pour un e-commerce (tolère les faux négatifs) vs un vote (tolère les faux positifs).
+    # 3) Balayer REVIEW de 0.2 à 0.8. « positif » = session retenue (bot ou suspect).
+    from sklearn.metrics import precision_score, recall_score
+    y_true = (df["label"] == "bot").astype(int)
+    print("\n[3] seuil review → précision / rappel (positif = bot ou suspect)")
+    for review in [i / 10 for i in range(2, 9)]:
+        pred = []
+        for net, forced in zip(df["net_calcule"], [r[2] for r in res]):
+            if forced or net >= BLOCK:
+                pred.append(1)
+            elif net >= review:
+                pred.append(1)
+            else:
+                pred.append(0)
+        p = precision_score(y_true, pred, zero_division=0)
+        r = recall_score(y_true, pred, zero_division=0)
+        print(f"    review={review:.1f}  précision={p:.2f}  rappel={r:.2f}")
+
+    # Bonus : un arbre sur la présence de chaque signal, comparé aux poids de SOLO.
+    from sklearn.tree import DecisionTreeClassifier, export_text
+    signaux = sorted({s for lst in df["signaux_list"] for s in lst})
+    X = pd.DataFrame({s: df["signaux_list"].apply(lambda lst, s=s: int(s in lst)) for s in signaux})
+    tree = DecisionTreeClassifier(max_depth=3, random_state=0)
+    tree.fit(X, y_true)
+    print("\n[bonus] arbre (profondeur 3) :")
+    print(export_text(tree, feature_names=signaux))
 
 
 if __name__ == "__main__":

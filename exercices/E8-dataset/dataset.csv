@@ -1,0 +1,7 @@
+client,ja4,verdict,bot_score,trust_score,signaux
+chrome-interaction,t13d1517h2_8daaf6152771_43736b97bd57,bot,1,1,webdriver headless_ua env_screen_default_dims
+firefox-interaction,t13d1517h2_8daaf6152771_3cbfd9057e0d,bot,1,0.65,webdriver
+chrome-sans-interaction,t13d1517h2_8daaf6152771_43736b97bd57,bot,1,0.55,webdriver headless_ua env_screen_default_dims beh_no_interaction
+curl,t13d4907h2_0d8feac7bc37_7395dae3b2f3,clean,0.35,1,http_inconsistencies env_screen_default_dims
+python-requests-ua-chrome,t13d1812h1_85036bcba153_b26ce05bbdd6,bot,0.85,1,tls_ua_mismatch http_inconsistencies env_screen_default_dims
+playwright-headless,t13d1516h2_8daaf6152771_a12e6946bbe1,bot,1,0.3,webdriver headless_ua zero_plugins http_inconsistencies env_software_gpu env_no_hw_video_decode env_webgpu_absent env_screen_default_dims beh_no_interaction
