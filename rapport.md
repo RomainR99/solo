@@ -13,6 +13,11 @@ Cependant, en cybersécurité, cette approche présente plusieurs inconvénients
   - [3. L'historique du navigateur et l'épaulement (shoulder surfing)](#historique)
   - [4. Le risque d'indexation par les moteurs de recherche](#indexation)
 - [Comment sécuriser cette méthode](#securiser)
+- [PKI (infrastructure de gestion de clés)](#pki)
+  - [Les 4 composants majeurs](#composants)
+  - [Le principe des clés](#cles)
+  - [Pourquoi utilise-t-on une PKI](#pourquoi)
+  - [PKI publique et PKI privée](#publique-privee)
 
 <a id="avantage"></a>
 
@@ -72,3 +77,55 @@ Si vous devez absolument utiliser un token dans l'URL, les bonnes pratiques de s
 2. **Usage unique.** Dès que le token a été utilisé (ou même dès que la page a été chargée une fois, selon la politique choisie), il doit être immédiatement invalidé en base de données.
 3. **Ajouter la directive Referrer-Policy.** Configurer l'en-tête HTTP `Referrer-Policy: no-referrer` sur la page de réinitialisation pour empêcher le navigateur de partager l'URL avec des outils comme Google Analytics.
 4. **La meilleure alternative.** Envoyer un code de validation à 6 chiffres par e-mail. L'utilisateur clique sur un lien générique (`/reset`), puis saisit manuellement son code à l'écran. Le code transite alors de manière sécurisée via le corps d'une requête HTTP POST (invisible dans les URL et les logs).
+
+<a id="pki"></a>
+
+## PKI (infrastructure de gestion de clés)
+
+Une PKI (Public Key Infrastructure), ou infrastructure de gestion de clés (IGC) en français, est le système complet (matériel, logiciels, personnes et règles) qui permet de créer, gérer, distribuer, stocker et révoquer des certificats numériques.
+
+Pour faire une analogie simple : la PKI est l'équivalent de l'administration de l'État qui fabrique et valide les cartes d'identité (les certificats), garantissant ainsi que vous êtes bien la personne que vous prétendez être sur Internet ou au sein d'une entreprise.
+
+<a id="composants"></a>
+
+### Les 4 composants majeurs d'une PKI
+
+Une PKI ne se résume pas à un seul logiciel, elle est composée de plusieurs rôles distincts :
+
+- **L'Autorité de certification (AC ou CA, Certificate Authority).** C'est le cœur de la PKI. C'est elle qui signe numériquement et délivre le certificat. Sa signature prouve que le certificat est authentique. Exemples publics connus : Let's Encrypt, DigiCert.
+- **L'Autorité d'enregistrement (AE ou RA, Registration Authority).** C'est le guichet de vérification. Avant que la CA ne crée le certificat, la RA vérifie l'identité du demandeur (s'agit-il du bon domaine web ? de la bonne personne ?). Une fois l'identité validée, elle demande à la CA de générer le certificat.
+- **Le répertoire des certificats (et la CRL).** Un annuaire qui stocke les certificats actifs, mais surtout la CRL (Certificate Revocation List), une liste noire des certificats qui ont été révoqués avant leur date d'expiration (par exemple, si une clé privée a été volée).
+- **La politique de certification (PC / DPS).** Le cadre juridique et technique qui définit les règles de sécurité de la PKI (qui a le droit d'avoir un certificat, comment sont protégées les clés, etc.).
+
+<a id="cles"></a>
+
+### Comment ça fonctionne en pratique (le principe des clés)
+
+La PKI repose sur la cryptographie asymétrique, qui utilise une paire de clés mathématiquement liées :
+
+1. **La clé privée.** Elle reste secrète (sur votre serveur ou votre ordinateur). Elle sert à prouver votre identité.
+2. **La clé publique.** Elle est partagée avec le monde entier à l'intérieur du certificat numérique.
+
+Le scénario type, lorsque vous vous connectez à un site sécurisé en `https://` :
+
+1. Le site envoie son certificat (qui contient sa clé publique) à votre navigateur.
+2. Votre navigateur regarde qui a signé ce certificat (la CA).
+3. Comme votre ordinateur possède nativement une liste des CA de confiance (les autorités racines), il vérifie la signature de la CA.
+4. Si la signature est valide, la connexion est sécurisée.
+
+<a id="pourquoi"></a>
+
+### Pourquoi utilise-t-on une PKI
+
+La PKI apporte trois garanties fondamentales en cybersécurité :
+
+- **L'authentification.** Savoir exactement avec qui vous communiquez (par exemple, être sûr que vous êtes sur le vrai site de votre banque et pas une copie).
+- **Le chiffrement.** Protéger les données durant leur transport pour que personne ne puisse les intercepter en clair.
+- **La non-répudiation / signature.** Garantir qu'un document ou un message signé numériquement n'a pas été modifié et a bien été envoyé par l'émetteur.
+
+<a id="publique-privee"></a>
+
+### PKI publique et PKI privée (entreprise)
+
+- **PKI publique.** Utilisée pour le web mondial. Les certificats sont reconnus par tous les navigateurs de la planète (par exemple, les certificats SSL/TLS des sites web).
+- **PKI privée / interne.** Déployée au sein d'une seule entreprise. Elle sert à sécuriser les accès Wi-Fi de l'entreprise, authentifier les ordinateurs des employés, chiffrer les e-mails internes ou signer des applications internes. Les ordinateurs des employés sont configurés pour lui faire confiance, mais le grand public ne la connaît pas.
