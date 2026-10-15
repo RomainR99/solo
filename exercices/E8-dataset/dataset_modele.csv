@@ -1,0 +1,7 @@
+client,ja4,verdict,bot_score,trust_score,signaux
+chrome-interaction,t13d1516h2_8daaf6152771_b186095e22b6,clean,0.10,0.65,
+firefox-interaction,t13d1715h1_5b57614c22b0_93c746dc1a19,clean,0.15,0.60,
+chrome-sans-interaction,t13d1516h2_8daaf6152771_b186095e22b6,suspect,0.20,0.00,beh_no_interaction
+curl,t13i3109h1_... ,suspect,0.70,0.00,tls_ua_mismatch
+python-requests-ua-chrome,t13i..._,bot,0.70,0.00,tls_ua_mismatch
+playwright-headless,t13d1516h2_8daaf6152771_b186095e22b6,bot,1.00,0.00,webdriver(N1-dur)

@@ -1,0 +1,13 @@
+client,ja4,verdict_solo,bot_score,trust_score,label,signaux
+chrome-humain-1,t13d1516h2,clean,0.0,0.65,humain,
+chrome-humain-2,t13d1516h2,clean,0.1,0.60,humain,env_webgpu_absent
+firefox-humain,t13d1715h1,clean,0.0,0.55,humain,
+safari-humain,t13d2014h1,clean,0.15,0.50,humain,env_no_media_devices
+chrome-vpn-humain,t13d1516h2,suspect,0.8,0.10,humain,ip_datacenter|ip_proxy
+chrome-sans-interaction,t13d1516h2,clean,0.2,0.0,humain,beh_no_interaction|env_render_hashes_absent
+curl,t13i3109h1,suspect,0.7,0.0,bot,tls_ua_mismatch
+python-requests,t13i3109h1,bot,0.9,0.0,bot,tls_ua_mismatch|ip_datacenter
+playwright-headless,t13d1516h2,bot,1.0,0.0,bot,webdriver
+selenium-dc,t13d1516h2,bot,1.0,0.0,bot,selenium|ip_datacenter
+bot-essaim,t13d1516h2,bot,1.0,0.0,bot,rep_fp_many_ips|rep_fp_swarm
+bot-env-vm,t13d1516h2,bot,0.85,0.0,bot,env_software_gpu|env_engine_ua_mismatch

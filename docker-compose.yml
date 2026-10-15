@@ -1,0 +1,111 @@
+services:
+  solo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: solo:latest
+    container_name: solo
+    restart: unless-stopped
+    init: true
+
+    # ─── Durcissement runtime (audit-hardening, P1) ──────────────────────────
+    # Le process Node tourne non-root (uid 10001 via gosu) et n'a besoin d'AUCUNE
+    # capability. On retire tout (`cap_drop: ALL`) et on ne rend QUE les caps dont
+    # l'ENTRYPOINT root a besoin AVANT le drop : chown/chmod des bind-mounts +
+    # gosu. `no-new-privileges` empêche toute ré-escalade setuid après le drop —
+    # il n'empêche PAS le drop root→user (réalisé par PID1 root avant exec gosu).
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN          # chown /data /certs /cert.pem /key.pem
+      - DAC_OVERRIDE   # écrire/chmod dans des bind-mounts root:root
+      - FOWNER         # chmod 600 sur la clé privée
+      - SETUID         # gosu → uid 10001
+      - SETGID         # gosu → gid 10001
+    # Rootfs immuable : seules écritures réelles = /data (SQLite WAL) et /certs
+    # (cert), tous deux montés en volume ci-dessous, + /tmp en tmpfs. Un RCE ne
+    # peut plus déposer de binaire ni persister dans /app, /usr, etc.
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    # Blast radius d'un DoS (OOM/fork-bomb/slowloris) borné au conteneur, pas à
+    # l'hôte LXC. Ajuster mem_limit selon la taille des bases MaxMind chargées.
+    mem_limit: 512m
+    memswap_limit: 512m      # pas de swap → OOM contenu, pas de thrash hôte
+    pids_limit: 256          # borne fork-bomb / threads
+    cpus: "1.5"
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 8192           # borne les FD/sockets (slowloris, cf. audit-parsers)
+
+    # Expose le port HTTPS directement sur l'hôte.
+    # ClientHello brut conservé → JA3/JA4 fonctionnent.
+    ports:
+      - "8443:8443"
+
+    # Charge ./.env s'il existe (toutes les valeurs ont un défaut, fichier optionnel).
+    env_file:
+      - path: .env
+        required: false
+
+    environment:
+      PORT: "8443"
+      HOST: "0.0.0.0"
+      LOG_LEVEL: "info"
+      NODE_ENV: "production"
+      # CN du certificat self-signed auto-généré au 1er boot (mets ton hostname).
+      TLS_CN: "${TLS_CN:-localhost}"
+      # Chemins absolus dans le container (montés via volumes ci-dessous).
+      CERT_PATH: "/certs/cert.pem"
+      KEY_PATH: "/certs/key.pem"
+      GEOIP_DB: "/data/GeoLite2-ASN.mmdb"
+      GEOIP_COUNTRY_DB: "/data/GeoLite2-Country.mmdb"
+      TOR_EXIT_LIST: "/data/tor-exit-nodes.txt"
+      # La base SQLite vit sur un VOLUME NOMMÉ (ext4 dans la VM Docker), PAS sur
+      # un bind mount. SQLite est en mode WAL (-shm + mmap) : un bind mount sur
+      # un disque Windows (WSL/DrvFs) ne supporte pas le mmap → "disk I/O error".
+      # Le volume nommé règle ça sur macOS/Linux/Windows, quel que soit le dossier.
+      DB_PATH: "/db/solo.db"
+
+    volumes:
+      # Certificats TLS (bind mount) : l'entrypoint en génère un self-signed ici
+      # au 1er boot si le dossier est vide. Dépose ton propre cert.pem/key.pem
+      # pour l'écraser (cf. README → « Démarrage rapide »).
+      - ./certs:/certs
+      # Bases MaxMind (GeoLite2-*.mmdb) + liste Tor : lues uniquement (readFileSync),
+      # donc montées en LECTURE SEULE. Aucune permission Unix requise → OK même sur
+      # un bind mount Windows. Dépose tes fichiers ici pour activer l'enrichissement.
+      - ./data:/data:ro
+      # Base SQLite persistante (WAL) sur volume nommé Linux — voir DB_PATH ci-dessus.
+      - solo-db:/db
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    healthcheck:
+      # Vrai check applicatif : handshake TLS *vérifié* + requête HTTPS sur /healthz.
+      # On ne désactive plus la validation TLS : on fournit le cert généré comme
+      # CA de confiance (option `ca`) et on force `servername:'localhost'` (présent
+      # dans les SAN du cert). Un MITM local sans la clé privée fait donc échouer
+      # le handshake. node fait l'appel : pas de curl à installer dans l'image.
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "const fs=require('fs');require('https').get({host:'127.0.0.1',port:8443,path:'/healthz',servername:process.env.TLS_CN||'localhost',ca:fs.readFileSync(process.env.CERT_PATH||'/certs/cert.pem')},r=>process.exit(r.statusCode<500?0:1)).on('error',e=>{console.error(e.message);process.exit(1)})"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+# Volume nommé pour la base SQLite (WAL). Vit dans la VM Docker (ext4) et non sur
+# le disque hôte → fonctionne identiquement sur macOS, Linux et Windows.
+# Pour repartir d'une base vierge : `docker compose down -v`.
+volumes:
+  solo-db:
