@@ -38,6 +38,12 @@ Cependant, en cybersécurité, cette approche présente plusieurs inconvénients
   - [L'URL-capacité](#url-cle)
   - [Si l'URL-capacité est interceptée](#fuite-capacite)
   - [Que faire si le lien a fuité](#invalider)
+- [RSA 4096 et AES 256](#rsa-aes)
+  - [AES : la force brute](#aes)
+  - [RSA : la factorisation](#rsa)
+  - [Pourquoi RSA a besoin de très grands nombres](#grands-nombres)
+  - [Équivalence de sécurité](#equivalence)
+  - [Le compromis du Web](#compromis)
 
 <a id="avantage"></a>
 
@@ -395,3 +401,58 @@ Dans un système classique (avec compte), si un pirate vole votre mot de passe, 
 1. **Invalidez le lien au plus vite.** Allez sur l'application concernée (Google Drive, OneDrive, etc.) et modifiez les options de partage. Changez « Toute personne disposant du lien » par « Limité aux personnes ajoutées ». Cela rendra l'URL-capacité instantanément inutilisable.
 2. **Générez un nouveau lien.** Si vous devez absolument continuer à partager la ressource, créez un nouveau lien (ce qui modifiera le jeton secret à l'intérieur de l'URL).
 3. **Surveillez vos comptes.** Si l'URL permettait de se connecter à un service, changez immédiatement le mot de passe principal de ce service et déconnectez toutes les sessions actives.
+
+<a id="rsa-aes"></a>
+
+## RSA 4096 et AES 256
+
+La différence de taille de clé entre RSA 4096 bits (asymétrique) et AES 256 bits (symétrique) s'explique par la nature mathématique de ces deux types de chiffrement.
+
+Bien que la clé RSA soit beaucoup plus grande, AES 256 est en réalité beaucoup plus robuste face aux attaques qu'un RSA 4096. Voici pourquoi.
+
+<a id="aes"></a>
+
+### 1. AES (symétrique) : la force brute pure
+
+Le chiffrement symétrique comme l'AES fonctionne comme un coffre-fort classique avec une clé physique.
+
+- **La structure.** La clé AES de 256 bits est simplement une suite de 256 zéros et uns complètement aléatoires. Il n'y a aucune structure, aucun modèle, aucune logique mathématique derrière.
+- **L'attaque.** Pour casser de l'AES 256, un pirate n'a pas d'autre choix que de tester toutes les combinaisons possibles une par une (attaque par force brute).
+- **La complexité.** Il existe 2²⁵⁶ combinaisons. Ce nombre est si gigantesque (plus grand que le nombre d'atomes dans l'univers connu) qu'il est mathématiquement et physiquement impossible à casser par force brute, même avec tous les ordinateurs de la Terre fonctionnant pendant des milliards d'années.
+
+<a id="rsa"></a>
+
+### 2. RSA (asymétrique) : une structure mathématique (les nombres premiers)
+
+Le chiffrement asymétrique (clé publique / clé privée) repose sur un problème mathématique difficile : la factorisation de très grands nombres.
+
+- **La structure.** Une clé publique RSA n'est pas une suite de bits aléatoires. C'est un très grand nombre mathématique (appelé N) qui est le résultat de la multiplication de deux nombres premiers géants (p et q), que seule la clé privée connaît.
+- **L'attaque.** Pour casser le RSA, un pirate n'a pas besoin de tester toutes les clés par force brute. Il lui suffit de retrouver quels sont les deux nombres premiers p et q qui composent le grand nombre N. C'est ce qu'on appelle la factorisation.
+- **Le problème.** Comme le nombre possède une structure mathématique, les mathématiciens ont inventé des algorithmes très intelligents (comme le crible spécial de corps de nombres, ou GNFS) qui permettent de casser ce code beaucoup plus vite qu'une simple force brute.
+
+<a id="grands-nombres"></a>
+
+### Pourquoi RSA a besoin de très grands nombres
+
+Puisque des algorithmes mathématiques permettent d'aller plus vite que la force brute, RSA est obligé d'utiliser des nombres gigantesques (4096 bits) pour rendre la tâche des ordinateurs trop lourde.
+
+Si on utilisait une clé RSA de seulement 256 bits, un ordinateur grand public trouverait les nombres premiers d'origine en quelques microsecondes. Même le RSA 1024 bits est aujourd'hui considéré comme cassable par des organisations puissantes. Le standard actuel de sécurité est donc le RSA 2048 ou 4096 bits.
+
+<a id="equivalence"></a>
+
+### Équivalence de sécurité
+
+L'organisme de standardisation américain (NIST) estime les équivalences de résistance ainsi :
+
+| Clé symétrique (AES) | Clé asymétrique (RSA) | Niveau de sécurité |
+|---|---|---|
+| 128 bits | 3072 bits | Sûr jusqu'en 2030 et au-delà |
+| 256 bits | 15360 bits | Sécurité maximale |
+
+Une clé RSA de 4096 bits offre en réalité une sécurité équivalente à un bloc AES d'environ 140 à 150 bits seulement.
+
+<a id="compromis"></a>
+
+### Le compromis du Web
+
+Comme le RSA 4096 nécessite de lourds calculs mathématiques, il est très lent. C'est pourquoi, lorsque vous visitez un site en `https://`, la PKI utilise le RSA uniquement pendant une fraction de seconde pour que les deux machines s'authentifient et s'échangent une clé secrète. Ensuite, le reste de la navigation est chiffré en AES, car il est beaucoup plus rapide et plus léger.
